@@ -38,12 +38,10 @@ impl PerCpuModeEncodings {
 
     fn add_recipe(&mut self, recipe: EncodingRecipe) -> EncodingRecipeNumber {
         if let Some(found_index) = self.recipes_inverse.get(&recipe) {
-            assert!(
-                self.recipes[*found_index].name == recipe.name,
-                format!(
-                    "trying to insert different recipes with a same name ({})",
-                    recipe.name
-                )
+            assert_eq!(
+                self.recipes[*found_index].name, recipe.name,
+                "trying to insert different recipes with a same name ({})",
+                recipe.name
             );
             *found_index
         } else {

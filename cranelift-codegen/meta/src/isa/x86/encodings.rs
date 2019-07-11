@@ -302,6 +302,7 @@ pub fn define(
     let copy_special = shared.by_name("copy_special");
     let ctz = shared.by_name("ctz");
     let debugtrap = shared.by_name("debugtrap");
+    let extractlane = shared.by_name("extractlane");
     let f32const = shared.by_name("f32const");
     let f64const = shared.by_name("f64const");
     let fadd = shared.by_name("fadd");
@@ -1640,6 +1641,27 @@ pub fn define(
             let number_of_lanes = 128 / ty.lane_bits();
             let instruction = insertlane.bind_vector(ty, number_of_lanes);
             let template = rec_r_ib_unsigned_r.opcodes(opcode.clone());
+            if ty.lane_bits() < 64 {
+                e.enc_32_64_isap(instruction, template.nonrex(), isap.clone());
+            } else {
+                // turns out the 64-bit widths have REX/W encodings and only are available on x86_64
+                e.enc64_isap(instruction, template.rex().w(), isap.clone());
+            }
+        }
+    }
+
+    // SIMD extractlane
+    let mut extractlane_mapping: HashMap<u64, (Vec<u8>, SettingPredicateNumber)> = HashMap::new();
+    extractlane_mapping.insert(8, (vec![0x66, 0x0f, 0x3a, 0x14], use_sse41)); // PEXTRB
+    extractlane_mapping.insert(16, (vec![0x66, 0x0f, 0xc5], use_sse2)); // PEXTRW, SSE4.1 has a PEXTRW that can move to reg/m16 but the opcode is four bytes
+    extractlane_mapping.insert(32, (vec![0x66, 0x0f, 0x3a, 0x16], use_sse41)); // PEXTRD
+    extractlane_mapping.insert(64, (vec![0x66, 0x0f, 0x3a, 0x16], use_sse41)); // PEXTRQ, only x86_64
+
+    for ty in ValueType::all_lane_types() {
+        if let Some((opcode, isap)) = extractlane_mapping.get(&ty.lane_bits()) {
+            let number_of_lanes = 128 / ty.lane_bits();
+            let instruction = extractlane.bind_vector(ty, number_of_lanes);
+            let template = rec_r_ib_unsigned.opcodes(opcode.clone());
             if ty.lane_bits() < 64 {
                 e.enc_32_64_isap(instruction, template.nonrex(), isap.clone());
             } else {

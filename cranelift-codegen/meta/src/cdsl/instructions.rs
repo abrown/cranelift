@@ -177,8 +177,8 @@ impl Instruction {
         bind(self.clone(), Some(lane_type.into()), Vec::new())
     }
 
-    pub fn bind_vector(&self, lane_type: impl Into<LaneType>, num_lanes: u64) -> BoundInstruction {
-        bind_vector(self.clone(), lane_type.into(), num_lanes, Vec::new())
+    pub fn bind_vector_from_lane(&self, lane_type: impl Into<LaneType>) -> BoundInstruction {
+        bind_vector(self.clone(), lane_type.into(), Vec::new())
     }
 
     pub fn bind_any(&self) -> BoundInstruction {
@@ -406,8 +406,8 @@ impl BoundInstruction {
         bind(self.inst, Some(lane_type.into()), self.value_types)
     }
 
-    pub fn bind_vector(self, lane_type: impl Into<LaneType>, num_lanes: u64) -> BoundInstruction {
-        bind_vector(self.inst, lane_type.into(), num_lanes, self.value_types)
+    pub fn bind_vector_from_lane(self, lane_type: impl Into<LaneType>) -> BoundInstruction {
+        bind_vector(self.inst, lane_type.into(), self.value_types)
     }
 
     pub fn bind_any(self) -> BoundInstruction {
@@ -1081,9 +1081,9 @@ fn bind(
 fn bind_vector(
     inst: Instruction,
     lane_type: LaneType,
-    num_lanes: u64,
     mut value_types: Vec<ValueTypeOrAny>,
 ) -> BoundInstruction {
+    let num_lanes = 128 / lane_type.lane_bits();
     let vector_type = ValueType::Vector(VectorType::new(lane_type, num_lanes));
     value_types.push(ValueTypeOrAny::ValueType(vector_type));
     verify_polymorphic_binding(&inst, &value_types);

@@ -1599,17 +1599,15 @@ pub fn define(
 
     // PSHUFB, 8-bit shuffle using two XMM registers
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 8) {
-        let number_of_lanes = 128 / ty.lane_bits();
-        let instruction = x86_pshufb.bind_vector(ty, number_of_lanes);
-        let template = rec_fa.nonrex().opcodes(vec![0x66, 0x0f, 0x38, 0x00]);
+        let instruction = x86_pshufb.bind_vector_from_lane(ty);
+        let template = rec_fa.nonrex().opcodes(vec![0x66, 0x0f, 0x38, 00]);
         e.enc32_isap(instruction.clone(), template.clone(), use_ssse3);
         e.enc64_isap(instruction, template, use_ssse3);
     }
 
     // PSHUFD, 32-bit shuffle using one XMM register and a u8 immediate
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 32) {
-        let number_of_lanes = 128 / ty.lane_bits();
-        let instruction = x86_pshufd.bind_vector(ty, number_of_lanes);
+        let instruction = x86_pshufd.bind_vector_from_lane(ty);
         let template = rec_r_ib_unsigned.nonrex().opcodes(vec![0x66, 0x0f, 0x70]);
         e.enc32_isap(instruction.clone(), template.clone(), use_sse2);
         e.enc64_isap(instruction, template, use_sse2);
@@ -1619,8 +1617,7 @@ pub fn define(
     // to the Intel manual: "When the destination operand is an XMM register, the source operand is
     // written to the low doubleword of the register and the regiser is zero-extended to 128 bits."
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() >= 8) {
-        let number_of_lanes = 128 / ty.lane_bits();
-        let instruction = scalar_to_vector.bind_vector(ty, number_of_lanes).bind(ty);
+        let instruction = scalar_to_vector.bind_vector_from_lane(ty).bind(ty);
         let template = rec_frurm.opcodes(vec![0x66, 0x0f, 0x6e]); // MOVD/MOVQ
         if ty.lane_bits() < 64 {
             // no 32-bit encodings for 64-bit widths
@@ -1638,8 +1635,7 @@ pub fn define(
 
     for ty in ValueType::all_lane_types() {
         if let Some((opcode, isap)) = insertlane_mapping.get(&ty.lane_bits()) {
-            let number_of_lanes = 128 / ty.lane_bits();
-            let instruction = insertlane.bind_vector(ty, number_of_lanes);
+            let instruction = insertlane.bind_vector_from_lane(ty);
             let template = rec_r_ib_unsigned_r.opcodes(opcode.clone());
             if ty.lane_bits() < 64 {
                 e.enc_32_64_isap(instruction, template.nonrex(), isap.clone());
@@ -1659,8 +1655,7 @@ pub fn define(
 
     for ty in ValueType::all_lane_types() {
         if let Some((opcode, isap)) = extractlane_mapping.get(&ty.lane_bits()) {
-            let number_of_lanes = 128 / ty.lane_bits();
-            let instruction = extractlane.bind_vector(ty, number_of_lanes);
+            let instruction = extractlane.bind_vector_from_lane(ty);
             let template = rec_r_ib_unsigned.opcodes(opcode.clone());
             if ty.lane_bits() < 64 {
                 e.enc_32_64_isap(instruction, template.nonrex(), isap.clone());
@@ -1673,7 +1668,7 @@ pub fn define(
 
     // SIMD bitcast f64 to all 8-bit-lane vectors (for legalizing splat.x8x16); assumes that f64 is stored in an XMM register
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 8) {
-        let instruction = bitcast.bind_vector(ty, 16).bind(F64);
+        let instruction = bitcast.bind_vector_from_lane(ty).bind(F64);
         e.enc32_rec(instruction.clone(), rec_null_fpr, 0);
         e.enc64_rec(instruction, rec_null_fpr, 0);
     }
@@ -1683,8 +1678,8 @@ pub fn define(
         for to_type in ValueType::all_lane_types().filter(|t| t.lane_bits() >= 8 && *t != from_type)
         {
             let instruction = raw_bitcast
-                .bind_vector(to_type, 128 / to_type.lane_bits())
-                .bind_vector(from_type, 128 / from_type.lane_bits());
+                .bind_vector_from_lane(to_type)
+                .bind_vector_from_lane(from_type);
             e.enc32_rec(instruction.clone(), rec_null_fpr, 0);
             e.enc64_rec(instruction, rec_null_fpr, 0);
         }

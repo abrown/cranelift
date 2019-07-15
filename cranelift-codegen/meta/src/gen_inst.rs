@@ -333,23 +333,27 @@ fn gen_instruction_data_impl(registry: &FormatRegistry, fmt: &mut Formatter) {
             fmt.indent(|fmt| {
                 for format in registry.iter() {
                     let name = format!("InstructionData::{}", format.name);
-                    let mut members = vec!["opcode"];
+                    let mut members: Vec<String> = vec!["opcode".into()];
 
                     let args = if format.typevar_operand.is_none() {
                         "&()"
                     } else if format.has_value_list {
-                        members.push("ref args");
+                        members.push("ref args".into());
                         "args.as_slice(pool)"
                     } else if format.num_value_operands == 1 {
-                        members.push("ref arg");
+                        members.push("ref arg".into());
                         "arg"
                     } else {
-                        members.push("ref args");
+                        members.push("ref args".into());
                         "args"
                     };
 
                     for field in &format.imm_fields {
-                        members.push(field.member);
+                        if field.kind.match_as_ref {
+                            members.push(format!("ref {}", field.member));
+                        } else {
+                            members.push(field.member.into());
+                        }
                     }
                     let members = members.join(", ");
 

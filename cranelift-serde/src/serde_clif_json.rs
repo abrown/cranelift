@@ -257,6 +257,10 @@ pub fn get_inst_data(inst_index: Inst, func: &Function) -> SerInstData {
             opcode: opcode.to_string(),
             imm: imm.to_string(),
         },
+        InstructionData::UnaryImm128 { opcode, ref imm } => SerInstData::UnaryImm {
+            opcode: opcode.to_string(),
+            imm: imm.to_string(),
+        },
         InstructionData::UnaryIeee32 { opcode, imm } => SerInstData::UnaryIeee32 {
             opcode: opcode.to_string(),
             imm: imm.to_string(),

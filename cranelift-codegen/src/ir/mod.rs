@@ -2,6 +2,7 @@
 
 mod builder;
 pub mod condcodes;
+pub mod constant;
 pub mod dfg;
 pub mod entities;
 mod extfunc;
@@ -24,6 +25,7 @@ pub mod types;
 mod valueloc;
 
 pub use crate::ir::builder::{InsertBuilder, InstBuilder, InstBuilderBase, InstInserterBase};
+pub use crate::ir::constant::{Constant, ConstantData, ConstantOffset};
 pub use crate::ir::dfg::{DataFlowGraph, ValueDef};
 pub use crate::ir::entities::{
     Ebb, FuncRef, GlobalValue, Heap, Inst, JumpTable, SigRef, StackSlot, Table, Value,
@@ -53,9 +55,13 @@ pub use crate::ir::valueloc::{ArgumentLoc, ValueLoc};
 use crate::binemit;
 use crate::entity::{entity_impl, PrimaryMap, SecondaryMap};
 use crate::isa;
+use std::collections::BTreeSet;
 
 /// Map of value locations.
 pub type ValueLocations = SecondaryMap<Value, ValueLoc>;
+
+/// Map of constants.
+pub type Constants = BTreeSet<Constant>;
 
 /// Map of jump tables.
 pub type JumpTables = PrimaryMap<JumpTable, JumpTableData>;

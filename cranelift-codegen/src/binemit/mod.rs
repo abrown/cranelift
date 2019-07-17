@@ -186,7 +186,13 @@ where
     }
 
     sink.begin_rodata();
-    // TODO: No read-only data (constant pools) at this time.
+
+    // output constants
+    for constant in func.constants.iter() {
+        for byte in constant.bytes() {
+            sink.put1(*byte)
+        }
+    }
 
     sink.end_codegen();
 }

@@ -262,7 +262,7 @@ impl PerCpuModeEncodings {
 
     fn enc32_maybe_isap(
         &mut self,
-        inst: BoundInstruction,
+        inst: impl Into<InstSpec>,
         template: Template,
         isap: Option<SettingPredicateNumber>,
     ) {
@@ -274,7 +274,7 @@ impl PerCpuModeEncodings {
 
     fn enc64_maybe_isap(
         &mut self,
-        inst: BoundInstruction,
+        inst: impl Into<InstSpec>,
         template: Template,
         isap: Option<SettingPredicateNumber>,
     ) {

@@ -269,7 +269,7 @@ impl FromStr for Uimm32 {
 ///
 /// This is used as an immediate value in SIMD instructions
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct Uimm128([u8; 16]);
+pub struct Uimm128(pub [u8; 16]);
 
 impl From<u64> for Uimm128 {
     fn from(x: u64) -> Self {

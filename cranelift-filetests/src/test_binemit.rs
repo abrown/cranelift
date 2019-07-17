@@ -87,6 +87,10 @@ impl binemit::CodeSink for TextSink {
         write!(self.text, ") ").unwrap();
     }
 
+    fn reloc_constant(&mut self, reloc: binemit::Reloc, constant: ir::ConstantOffset) {
+        write!(self.text, "{}({}) ", reloc, constant).unwrap();
+    }
+
     fn reloc_jt(&mut self, reloc: binemit::Reloc, jt: ir::JumpTable) {
         write!(self.text, "{}({}) ", reloc, jt).unwrap();
     }

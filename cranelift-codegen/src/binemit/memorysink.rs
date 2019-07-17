@@ -15,7 +15,7 @@
 //! `CodeSink::put*` methods, so the performance impact of the virtual callbacks is less severe.
 
 use super::{Addend, CodeInfo, CodeOffset, CodeSink, Reloc};
-use crate::ir::{ExternalName, JumpTable, SourceLoc, TrapCode};
+use crate::ir::{ConstantOffset, ExternalName, JumpTable, SourceLoc, TrapCode};
 use core::ptr::write_unaligned;
 
 /// A `CodeSink` that writes binary machine code directly into memory.
@@ -73,6 +73,9 @@ pub trait RelocSink {
     /// Add a relocation referencing an external symbol at the current offset.
     fn reloc_external(&mut self, _: CodeOffset, _: Reloc, _: &ExternalName, _: Addend);
 
+    /// Add a relocation referencing a constant.
+    fn reloc_constant(&mut self, _: CodeOffset, _: Reloc, _: ConstantOffset);
+
     /// Add a relocation referencing a jump table.
     fn reloc_jt(&mut self, _: CodeOffset, _: Reloc, _: JumpTable);
 }
@@ -125,6 +128,11 @@ impl<'a> CodeSink for MemoryCodeSink<'a> {
     fn reloc_external(&mut self, rel: Reloc, name: &ExternalName, addend: Addend) {
         let ofs = self.offset();
         self.relocs.reloc_external(ofs, rel, name, addend);
+    }
+
+    fn reloc_constant(&mut self, rel: Reloc, constant_offset: ConstantOffset) {
+        let ofs = self.offset();
+        self.relocs.reloc_constant(ofs, rel, constant_offset);
     }
 
     fn reloc_jt(&mut self, rel: Reloc, jt: JumpTable) {

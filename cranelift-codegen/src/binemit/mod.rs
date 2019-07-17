@@ -12,7 +12,7 @@ pub use self::relaxation::relax_branches;
 pub use self::shrink::shrink_instructions;
 pub use crate::regalloc::RegDiversions;
 
-use crate::ir::{ExternalName, Function, Inst, JumpTable, SourceLoc, TrapCode};
+use crate::ir::{ConstantOffset, ExternalName, Function, Inst, JumpTable, SourceLoc, TrapCode};
 use core::fmt;
 #[cfg(feature = "enable-serde")]
 use serde::{Deserialize, Serialize};
@@ -126,6 +126,9 @@ pub trait CodeSink {
 
     /// Add a relocation referencing an external symbol plus the addend at the current offset.
     fn reloc_external(&mut self, _: Reloc, _: &ExternalName, _: Addend);
+
+    /// Add a relocation referencing a jump table.
+    fn reloc_constant(&mut self, _: Reloc, _: ConstantOffset);
 
     /// Add a relocation referencing a jump table.
     fn reloc_jt(&mut self, _: Reloc, _: JumpTable);

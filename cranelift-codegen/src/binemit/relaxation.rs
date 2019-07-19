@@ -122,11 +122,7 @@ pub fn relax_branches(func: &mut Function, isa: &dyn TargetIsa) -> CodegenResult
     let jumptables_size = offset - jumptables;
     let rodata = offset;
 
-    // TODO we are unable to do the following because BTreeSet does not have a mutable iterator (changing a set item could impact the order so this is not allowed)
-    //    for constant in func.constants.mut_iter() {
-    //        constant.offset(offset);
-    //        offset += constant.len() as u32;
-    //    }
+    // TODO: Once we have constant pools we'll do some processing here to update offset.
 
     let rodata_size = offset - rodata;
 

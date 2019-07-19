@@ -103,6 +103,24 @@ impl GlobalValue {
     }
 }
 
+/// An opaque reference to a constant
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct Constant(u32);
+entity_impl!(Constant, "const");
+
+impl Constant {
+    /// Create a const reference from its number.
+    ///
+    /// This method is for use by the parser.
+    pub fn with_number(n: u32) -> Option<Self> {
+        if n < u32::MAX {
+            Some(Constant(n))
+        } else {
+            None
+        }
+    }
+}
+
 /// An opaque reference to a jump table.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
@@ -209,6 +227,8 @@ pub enum AnyEntity {
     StackSlot(StackSlot),
     /// A Global value.
     GlobalValue(GlobalValue),
+    /// A constant.
+    Constant(Constant),
     /// A jump table.
     JumpTable(JumpTable),
     /// An external function.
@@ -230,6 +250,7 @@ impl fmt::Display for AnyEntity {
             AnyEntity::Value(r) => r.fmt(f),
             AnyEntity::StackSlot(r) => r.fmt(f),
             AnyEntity::GlobalValue(r) => r.fmt(f),
+            AnyEntity::Constant(r) => r.fmt(f),
             AnyEntity::JumpTable(r) => r.fmt(f),
             AnyEntity::FuncRef(r) => r.fmt(f),
             AnyEntity::SigRef(r) => r.fmt(f),
@@ -272,6 +293,12 @@ impl From<StackSlot> for AnyEntity {
 impl From<GlobalValue> for AnyEntity {
     fn from(r: GlobalValue) -> Self {
         AnyEntity::GlobalValue(r)
+    }
+}
+
+impl From<Constant> for AnyEntity {
+    fn from(r: Constant) -> Self {
+        AnyEntity::Constant(r)
     }
 }
 
@@ -329,5 +356,11 @@ mod tests {
             mem::size_of::<Value>(),
             mem::size_of::<PackedOption<Value>>()
         );
+    }
+
+    #[test]
+    fn constant_with_number() {
+        assert_eq!(Constant::with_number(0).unwrap().to_string(), "const0");
+        assert_eq!(Constant::with_number(1).unwrap().to_string(), "const1");
     }
 }

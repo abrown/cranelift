@@ -35,8 +35,7 @@ pub fn define() -> Vec<OperandKind> {
     // instructions like const.
     let uimm128 = Builder::new_imm("uimm128")
         .doc("A 128-bit immediate unsigned integer.")
-        .rust_type("std::boxed::Box<ir::immediates::Uimm128>")
-        .match_as_ref(true)
+        .rust_type("ir::Constant")
         .build();
     kinds.push(uimm128);
 

@@ -6,11 +6,9 @@
 use crate::binemit::CodeOffset;
 use crate::entity::{PrimaryMap, SecondaryMap};
 use crate::ir;
-use crate::ir::constant::byte_len;
-use crate::ir::Constants;
 use crate::ir::{
-    Constant, Ebb, ExtFuncData, FuncRef, GlobalValue, GlobalValueData, Heap, HeapData, JumpTable,
-    JumpTableData, SigRef, StackSlot, StackSlotData, Table, TableData,
+    ConstantPool, Ebb, ExtFuncData, FuncRef, GlobalValue, GlobalValueData, Heap, HeapData,
+    JumpTable, JumpTableData, SigRef, StackSlot, StackSlotData, Table, TableData,
 };
 use crate::ir::{DataFlowGraph, ExternalName, Layout, Signature};
 use crate::ir::{EbbOffsets, InstEncodings, SourceLocs, StackSlots, ValueLocations};
@@ -20,7 +18,6 @@ use crate::regalloc::RegDiversions;
 use crate::value_label::ValueLabelsRanges;
 use crate::write::write_function;
 use core::fmt;
-use std::collections::BTreeSet;
 
 /// A function.
 ///
@@ -49,8 +46,8 @@ pub struct Function {
     /// Jump tables used in this function.
     pub jump_tables: JumpTables,
 
-    /// Constants used in this function TODO it would be better if all functions shared the same constant map and thus could do some pooling
-    pub constants: Constants,
+    /// Constants used in this function
+    pub constants: ConstantPool,
 
     /// Data flow graph containing the primary definition of all instructions, EBBs and values.
     pub dfg: DataFlowGraph,
@@ -92,7 +89,7 @@ impl Function {
             global_values: PrimaryMap::new(),
             heaps: PrimaryMap::new(),
             tables: PrimaryMap::new(),
-            constants: BTreeSet::new(),
+            constants: ConstantPool::new(),
             jump_tables: PrimaryMap::new(),
             dfg: DataFlowGraph::new(),
             layout: Layout::new(),
@@ -128,18 +125,18 @@ impl Function {
     }
 
     /// Creates a constant in the function.
-    pub fn create_constant(&mut self, constant: impl Into<Constant>) -> bool {
-        let c = constant.into();
-        let d = if self.constants.contains(&c) {
-            c // offset has already been set at previous insertion point
-        } else {
-            c.offset(byte_len(&self.constants) as u32) // set offset at the current number of bytes in the set; relies on the set not being re-ordered
-                                                       // TODO if we want to set the offset here we probably don't want a b-tree which would invalidate earlier offsets
-                                                       // if something was inserted later (in time) that is put earlier (in sort order); we probably want a set
-                                                       // that simply maintains insert order
-        };
-        self.constants.insert(d)
-    }
+    //    pub fn create_constant(&mut self, constant: impl Into<Constant>) -> bool {
+    //        let c = constant.into();
+    //        let d = if self.constants.contains(&c) {
+    //            c // offset has already been set at previous insertion point
+    //        } else {
+    //            c.offset(byte_len(&self.constants) as u32) // set offset at the current number of bytes in the set; relies on the set not being re-ordered
+    //                                                       // TODO if we want to set the offset here we probably don't want a b-tree which would invalidate earlier offsets
+    //                                                       // if something was inserted later (in time) that is put earlier (in sort order); we probably want a set
+    //                                                       // that simply maintains insert order
+    //        };
+    //        self.constants.insert(d)
+    //    }
 
     /// Creates a jump table in the function, to be used by `br_table` instructions.
     pub fn create_jump_table(&mut self, data: JumpTableData) -> JumpTable {

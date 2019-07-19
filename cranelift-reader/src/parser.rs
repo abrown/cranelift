@@ -547,10 +547,10 @@ impl<'a> Parser<'a> {
     }
 
     // Match and consume a Uimm128 immediate; due to size restrictions on InstructionData, Uimm128 is boxed in cranelift-codegen/meta/src/shared/immediates.rs
-    fn match_uimm128(&mut self, err_msg: &str) -> ParseResult<std::boxed::Box<Uimm128>> {
+    fn match_uimm128(&mut self, err_msg: &str) -> ParseResult<Uimm128> {
         if let Some(Token::Integer(text)) = self.token() {
             self.consume();
-            // Lexer just gives us raw text that looks like an integer.
+            // Lexer just gives us raw text that looks like hex code.
             // Parse it as an Uimm128 to check for overflow and other issues.
             text.parse()
                 .map_err(|_| self.error("expected u128 hexadecimal immediate"))
@@ -2122,10 +2122,14 @@ impl<'a> Parser<'a> {
                 opcode,
                 imm: self.match_imm64("expected immediate integer operand")?,
             },
-            InstructionFormat::UnaryImm128 => InstructionData::UnaryImm128 {
-                opcode,
-                imm: self.match_uimm128("expected immediate integer operand")?,
-            },
+            InstructionFormat::UnaryImm128 => {
+                let uimm128 = self.match_uimm128("expected immediate hexadecimal operand")?;
+                let constant_handle = ctx.function.constants.insert(uimm128.0.to_vec());
+                InstructionData::UnaryImm128 {
+                    opcode,
+                    imm: constant_handle,
+                }
+            }
             InstructionFormat::UnaryIeee32 => InstructionData::UnaryIeee32 {
                 opcode,
                 imm: self.match_ieee32("expected immediate 32-bit float operand")?,

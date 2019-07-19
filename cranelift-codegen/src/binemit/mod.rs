@@ -188,8 +188,8 @@ where
     sink.begin_rodata();
 
     // output constants
-    for constant in func.constants.iter() {
-        for byte in constant.bytes() {
+    for (_, constant_data) in func.constants.iter() {
+        for byte in constant_data.iter() {
             sink.put1(*byte)
         }
     }

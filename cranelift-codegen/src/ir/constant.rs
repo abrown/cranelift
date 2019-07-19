@@ -1,158 +1,135 @@
 //! Constant representation.
 
-use crate::ir::immediates::Uimm128;
-use core::fmt::{self, Display, Formatter};
-use core::slice::Iter;
-use std::boxed::Box;
-use std::collections::BTreeSet;
+use crate::ir::Constant;
+use cranelift_entity::EntityRef;
+use std::collections::btree_map::Iter;
+use std::collections::{BTreeMap, HashMap};
 use std::vec::Vec;
 
-/// Symbolizes a constant in the IR that will be stored separately (e.g. in a constant pool)
-///
-/// # Fields:
-///
-/// * data: holds the value of the constant as bytes
-/// * offset: the location at which to store the constant in the constant pool
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd)] // TODO
-pub struct Constant {
-    data: ConstantData,
-    /// the the location (in bytes) at which to store the constant in the constant pool
-    pub offset: Option<ConstantOffset>,
-}
-
-impl Constant {
-    /// set the offset of the constant
-    pub fn offset(mut self, new_offset: ConstantOffset) -> Constant {
-        self.offset = Some(new_offset);
-        self
-    }
-
-    /// iterate over the bytes stored in the constant
-    pub fn bytes(&self) -> Iter<u8> {
-        self.data.iter()
-    }
-
-    /// calculate the number of bytes stored by the constant
-    pub fn len(&self) -> usize {
-        self.data.len()
-    }
-}
-
-impl From<Uimm128> for Constant {
-    fn from(imm: Uimm128) -> Self {
-        let data = ConstantData::from(&imm.0[..]);
-        Constant { data, offset: None }
-    }
-}
-
-impl From<&Box<Uimm128>> for Constant {
-    fn from(imm: &Box<Uimm128>) -> Self {
-        imm.into()
-    }
-}
+/// A reference to the actual constant data
+//pub struct ConstantData2<'a>(&'a [u8]);
+pub type ConstantData = Vec<u8>;
 
 /// This type describes an offset in bytes within a constant pool
 pub type ConstantOffset = u32;
 
-/// Calculate the total number of bytes held in all of the constants in the set
-///
-/// # Parameters:
-/// - set: the set of constants
-///
-/// # Return:
-/// - the number of bytes contained in all of the constants
-pub fn byte_len(set: &BTreeSet<Constant>) -> usize {
-    set.iter().fold(0, |a, c| a + c.len())
+/// Maintains the mapping between a constant handle (i.e. [Constant](ir::entities::Constant)) and
+/// its constant data (i.e. [ConstantData](ir::constant::ConstantData))
+#[derive(Clone)]
+pub struct ConstantPool {
+    handles_to_values: BTreeMap<Constant, ConstantData>,
+    // would maintain insertion order if Constants are sequentially increasing
+    values_to_handles: HashMap<ConstantData, Constant>, // no need to maintain lexicographic order of data
 }
 
-/// Contents of a constant value
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ConstantData {
-    // raw bytes of constant TODO perhaps this could be more efficient with a &[u8] type
-    data: Vec<u8>,
-}
-
-impl ConstantData {
-    /// Create a new empty jump table.
+impl ConstantPool {
+    /// Create a new constant pool instance
     pub fn new() -> Self {
-        Self { data: Vec::new() }
-    }
-
-    /// Create a new empty jump table with the specified capacity.
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            data: Vec::with_capacity(capacity),
+        ConstantPool {
+            handles_to_values: BTreeMap::new(),
+            values_to_handles: HashMap::new(),
         }
     }
 
-    /// Get the number of table entries.
+    /// Empty the constant pool of all data
+    pub fn clear(&mut self) {
+        self.handles_to_values.clear();
+        self.values_to_handles.clear();
+    }
+
+    /// Insert constant data into the pool, returning a handle for later referencing; when constant
+    /// data is inserted that is a duplicate of previous constant data, the existing handle will be
+    /// returned
+    pub fn insert(&mut self, constant_value: ConstantData) -> Constant {
+        if self.values_to_handles.contains_key(&constant_value) {
+            self.values_to_handles
+                .get(&constant_value)
+                .expect("The value must exist")
+                .clone()
+        } else {
+            let constant_handle = Constant::new(self.len());
+            self.values_to_handles
+                .insert(constant_value.clone(), constant_handle.clone());
+            self.handles_to_values
+                .insert(constant_handle.clone(), constant_value);
+            constant_handle
+        }
+    }
+
+    /// Retrieve the offset of a given constant, where the offset is the number of bytes from the
+    /// beginning of the constant pool to the beginning of the constant data
+    pub fn get_offset(&self, constant_handle: Constant) -> ConstantOffset {
+        let mut counted_bytes: ConstantOffset = 0;
+        for (handle, value) in self.handles_to_values.iter() {
+            if handle == &constant_handle {
+                return counted_bytes;
+            } else {
+                counted_bytes += value.len() as u32;
+            }
+        }
+        panic!("Unable to find the constant; was its value inserted first?") // TODO could return result here instead
+    }
+
+    /// Iterate over the constants in insertion order
+    pub fn iter(&self) -> Iter<Constant, ConstantData> {
+        self.handles_to_values.iter()
+    }
+
+    /// Return the number of constants in the pool
     pub fn len(&self) -> usize {
-        self.data.len()
+        self.handles_to_values.len()
     }
 
-    ///
-    pub fn add_byte(&mut self, byte: u8) {
-        self.data.push(byte)
-    }
-
-    ///
-    ///
-    pub fn add_slice(&mut self, bytes: &[u8]) {
-        for byte in bytes.iter() {
-            self.add_byte(*byte)
-        }
-    }
-
-    /// Returns an iterator over the table.
-    pub fn iter(&self) -> Iter<u8> {
-        self.data.iter()
-    }
-}
-
-impl From<&[u8]> for ConstantData {
-    fn from(slice: &[u8]) -> Self {
-        Self {
-            data: slice.to_vec(),
-        }
-    }
-}
-
-// TODO add impl From<[u8]> for ConstantData
-
-impl Display for ConstantData {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, "constant ")?;
-        write!(fmt, "{:02X?}", self.data)
+    /// Return the combined size of all of the constant values in the pool
+    pub fn byte_size(&self) -> usize {
+        self.values_to_handles.keys().map(|c| c.len()).sum()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::string::ToString;
-
     use super::*;
 
     #[test]
     fn empty() {
-        let c = ConstantData::new();
-        assert_eq!(c.len(), 0);
+        let sut = ConstantPool::new();
+        assert_eq!(sut.len(), 0);
     }
 
     #[test]
     fn insert() {
-        let mut c = ConstantData::new();
-        c.add_byte(1);
-        c.add_byte(2);
-        c.add_byte(3);
-        assert_eq!(c.len(), 3);
+        let mut sut = ConstantPool::new();
+        sut.insert(vec![1, 2, 3]);
+        sut.insert(vec![4, 5, 6]);
+        assert_eq!(sut.len(), 2);
     }
 
     #[test]
-    fn stringify() {
-        let mut c = ConstantData::new();
-        assert_eq!(c.to_string(), "constant []");
+    fn insert_duplicate() {
+        let mut sut = ConstantPool::new();
+        let a = sut.insert(vec![1, 2, 3]);
+        sut.insert(vec![4, 5, 6]);
+        let b = sut.insert(vec![1, 2, 3]);
+        assert_eq!(a, b);
+    }
 
-        c.add_slice(&[1, 2, 42]);
-        assert_eq!(c.to_string(), "constant [01, 02, 2A]");
+    #[test]
+    fn clear() {
+        let mut sut = ConstantPool::new();
+        sut.insert(vec![1, 2, 3]);
+        assert_eq!(sut.len(), 1);
+
+        sut.clear();
+        assert_eq!(sut.len(), 0);
+    }
+
+    #[test]
+    fn iteration_order() {
+        let mut sut = ConstantPool::new();
+        sut.insert(vec![1, 2, 3]);
+        sut.insert(vec![4, 5, 6]);
+        sut.insert(vec![1, 2, 3]);
+        let data = sut.iter().map(|(_, v)| v).collect::<Vec<&ConstantData>>();
+        assert_eq!(data, vec![&vec![1, 2, 3], &vec![4, 5, 6]]);
     }
 }

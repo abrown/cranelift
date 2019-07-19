@@ -122,7 +122,9 @@ pub fn relax_branches(func: &mut Function, isa: &dyn TargetIsa) -> CodegenResult
     let jumptables_size = offset - jumptables;
     let rodata = offset;
 
-    // TODO: Once we have constant pools we'll do some processing here to update offset.
+    for (_, constant_data) in func.dfg.constants.iter() {
+        offset += constant_data.len() as u32
+    }
 
     let rodata_size = offset - rodata;
 

@@ -305,7 +305,13 @@ impl SubTest for TestBinEmit {
         }
 
         sink.begin_rodata();
-        // TODO: Read-only (constant pool) data.
+
+        // output constants
+        for (_, constant_data) in func.dfg.constants.iter() {
+            for byte in constant_data.iter() {
+                sink.put1(*byte)
+            }
+        }
 
         sink.end_codegen();
 

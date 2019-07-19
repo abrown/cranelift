@@ -134,8 +134,6 @@ pub struct OperandKind {
     /// The camel-cased name of an operand kind is also the Rust type used to represent it.
     pub rust_type: String,
 
-    pub match_as_ref: bool,
-
     pub fields: OperandKindFields,
 }
 
@@ -167,8 +165,6 @@ pub struct OperandKindBuilder {
     /// The camel-cased name of an operand kind is also the Rust type used to represent it.
     rust_type: Option<String>,
 
-    match_as_ref: bool,
-
     fields: OperandKindFields,
 }
 
@@ -179,7 +175,6 @@ impl OperandKindBuilder {
             doc: None,
             default_member: None,
             rust_type: None,
-            match_as_ref: false,
             fields,
         }
     }
@@ -190,7 +185,6 @@ impl OperandKindBuilder {
             doc: None,
             default_member: None,
             rust_type: None,
-            match_as_ref: false,
             fields: OperandKindFields::ImmValue,
         }
     }
@@ -201,7 +195,6 @@ impl OperandKindBuilder {
             doc: None,
             default_member: None,
             rust_type: None,
-            match_as_ref: false,
             fields: OperandKindFields::ImmEnum(values),
         }
     }
@@ -219,10 +212,6 @@ impl OperandKindBuilder {
     pub fn rust_type(mut self, rust_type: &'static str) -> Self {
         assert!(self.rust_type.is_none());
         self.rust_type = Some(rust_type.to_string());
-        self
-    }
-    pub fn match_as_ref(mut self, enabled: bool) -> Self {
-        self.match_as_ref = enabled;
         self
     }
 
@@ -265,7 +254,6 @@ impl OperandKindBuilder {
             doc,
             default_member,
             rust_type,
-            match_as_ref: self.match_as_ref,
             fields: self.fields,
         }
     }

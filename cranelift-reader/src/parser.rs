@@ -552,8 +552,12 @@ impl<'a> Parser<'a> {
             self.consume();
             // Lexer just gives us raw text that looks like hex code.
             // Parse it as an Uimm128 to check for overflow and other issues.
-            text.parse()
-                .map_err(|_| self.error("expected u128 hexadecimal immediate"))
+            text.parse().map_err(|e| {
+                self.error(&format!(
+                    "expected u128 hexadecimal immediate, failed to parse: {}",
+                    e
+                ))
+            })
         } else {
             err!(self.loc, err_msg)
         }

@@ -2311,8 +2311,6 @@ pub fn define<'shared>(
                 r#"
                     {{PUT_OP}}(bits, rex2(0, out_reg0), sink);
                     modrm_riprel(out_reg0, sink);
-                    // No reloc is needed here as the jump table is emitted directly after
-                    // the function body.
                     const_disp4(imm, func, sink);
                 "#,
             ),

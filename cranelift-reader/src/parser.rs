@@ -2124,7 +2124,7 @@ impl<'a> Parser<'a> {
             },
             InstructionFormat::UnaryImm128 => {
                 let uimm128 = self.match_uimm128("expected immediate hexadecimal operand")?;
-                let constant_handle = ctx.function.constants.insert(uimm128.0.to_vec());
+                let constant_handle = ctx.function.dfg.constants.insert(uimm128.0.to_vec());
                 InstructionData::UnaryImm128 {
                     opcode,
                     imm: constant_handle,

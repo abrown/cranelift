@@ -6,11 +6,11 @@
 use crate::binemit::CodeOffset;
 use crate::entity::{PrimaryMap, SecondaryMap};
 use crate::ir;
-use crate::ir::{
-    ConstantPool, Ebb, ExtFuncData, FuncRef, GlobalValue, GlobalValueData, Heap, HeapData,
-    JumpTable, JumpTableData, SigRef, StackSlot, StackSlotData, Table, TableData,
-};
 use crate::ir::{DataFlowGraph, ExternalName, Layout, Signature};
+use crate::ir::{
+    Ebb, ExtFuncData, FuncRef, GlobalValue, GlobalValueData, Heap, HeapData, JumpTable,
+    JumpTableData, SigRef, StackSlot, StackSlotData, Table, TableData,
+};
 use crate::ir::{EbbOffsets, InstEncodings, SourceLocs, StackSlots, ValueLocations};
 use crate::ir::{JumpTableOffsets, JumpTables};
 use crate::isa::{CallConv, EncInfo, Encoding, Legalize, TargetIsa};
@@ -45,9 +45,6 @@ pub struct Function {
 
     /// Jump tables used in this function.
     pub jump_tables: JumpTables,
-
-    /// Constants used in this function
-    pub constants: ConstantPool,
 
     /// Data flow graph containing the primary definition of all instructions, EBBs and values.
     pub dfg: DataFlowGraph,
@@ -89,7 +86,6 @@ impl Function {
             global_values: PrimaryMap::new(),
             heaps: PrimaryMap::new(),
             tables: PrimaryMap::new(),
-            constants: ConstantPool::new(),
             jump_tables: PrimaryMap::new(),
             dfg: DataFlowGraph::new(),
             layout: Layout::new(),
@@ -108,7 +104,6 @@ impl Function {
         self.global_values.clear();
         self.heaps.clear();
         self.tables.clear();
-        self.constants.clear();
         self.jump_tables.clear();
         self.dfg.clear();
         self.layout.clear();
@@ -123,20 +118,6 @@ impl Function {
     pub fn new() -> Self {
         Self::with_name_signature(ExternalName::default(), Signature::new(CallConv::Fast))
     }
-
-    /// Creates a constant in the function.
-    //    pub fn create_constant(&mut self, constant: impl Into<Constant>) -> bool {
-    //        let c = constant.into();
-    //        let d = if self.constants.contains(&c) {
-    //            c // offset has already been set at previous insertion point
-    //        } else {
-    //            c.offset(byte_len(&self.constants) as u32) // set offset at the current number of bytes in the set; relies on the set not being re-ordered
-    //                                                       // TODO if we want to set the offset here we probably don't want a b-tree which would invalidate earlier offsets
-    //                                                       // if something was inserted later (in time) that is put earlier (in sort order); we probably want a set
-    //                                                       // that simply maintains insert order
-    //        };
-    //        self.constants.insert(d)
-    //    }
 
     /// Creates a jump table in the function, to be used by `br_table` instructions.
     pub fn create_jump_table(&mut self, data: JumpTableData) -> JumpTable {

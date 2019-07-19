@@ -188,7 +188,7 @@ where
     sink.begin_rodata();
 
     // output constants
-    for (_, constant_data) in func.constants.iter() {
+    for (_, constant_data) in func.dfg.constants.iter() {
         for byte in constant_data.iter() {
             sink.put1(*byte)
         }

@@ -279,6 +279,15 @@ impl From<u64> for Uimm128 {
     }
 }
 
+impl From<&[u8]> for Uimm128 {
+    fn from(slice: &[u8]) -> Self {
+        assert_eq!(slice.len(), 16);
+        let mut buffer = [0; 16];
+        buffer.copy_from_slice(slice);
+        Uimm128(buffer)
+    }
+}
+
 impl Display for Uimm128 {
     // print a 128-bit vector in hexadecimal, e.g. 0x000102030405060708090a0b0c0d0e0f
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {

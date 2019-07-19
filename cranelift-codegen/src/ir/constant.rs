@@ -56,6 +56,14 @@ impl ConstantPool {
         }
     }
 
+    /// Retrieve the constant data given a handle
+    pub fn get(&self, constant_handle: Constant) -> &ConstantData {
+        assert!(self.handles_to_values.contains_key(&constant_handle));
+        self.handles_to_values
+            .get(&constant_handle)
+            .expect("We should never have a constant handle without a corresponding constant value")
+    }
+
     /// Retrieve the offset of a given constant, where the offset is the number of bytes from the
     /// beginning of the constant pool to the beginning of the constant data
     pub fn get_offset(&self, constant_handle: Constant) -> ConstantOffset {
@@ -132,4 +140,6 @@ mod tests {
         let data = sut.iter().map(|(_, v)| v).collect::<Vec<&ConstantData>>();
         assert_eq!(data, vec![&vec![1, 2, 3], &vec![4, 5, 6]]);
     }
+
+    // TODO handle errors correctly instead of panicking; including OOM
 }

@@ -36,11 +36,7 @@ fn gen_recipe(formats: &FormatRegistry, recipe: &EncodingRecipe, fmt: &mut Forma
     fmt.indent(|fmt| {
         fmt.line("opcode,");
         for f in &inst_format.imm_fields {
-            if f.kind.match_as_ref {
-                fmtln!(fmt, "ref {},", f.member);
-            } else {
-                fmtln!(fmt, "{},", f.member);
-            }
+            fmtln!(fmt, "{},", f.member);
         }
         if want_args {
             if inst_format.has_value_list || num_value_ops > 1 {

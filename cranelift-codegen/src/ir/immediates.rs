@@ -826,12 +826,11 @@ impl From<u64> for Ieee64 {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use core::fmt::Display;
     use core::str::FromStr;
     use core::{f32, f64};
     use std::string::ToString;
-
-    use super::*;
 
     #[test]
     fn format_imm64() {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::cdsl::encodings::{Encoding, EncodingBuilder};
 use crate::cdsl::instructions::{
-    BoundInstruction, InstSpec, Instruction, InstructionGroup, InstructionPredicate,
+    Bindable, BoundInstruction, InstSpec, Instruction, InstructionGroup, InstructionPredicate,
     InstructionPredicateNode, InstructionPredicateRegistry,
 };
 use crate::cdsl::recipes::{EncodingRecipe, EncodingRecipeNumber, Recipes};

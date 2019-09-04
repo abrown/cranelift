@@ -17,24 +17,27 @@ use crate::shared::types::Reference::{R32, R64};
 use crate::shared::Definitions as SharedDefinitions;
 
 use super::recipes::{RecipeGroup, Template};
+use crate::cdsl::formats::FormatRegistry;
 use crate::cdsl::instructions::InstructionParameter::AnyType;
 
-pub struct PerCpuModeEncodings {
+pub struct PerCpuModeEncodings<'defs> {
     pub enc32: Vec<Encoding>,
     pub enc64: Vec<Encoding>,
     pub recipes: Recipes,
     recipes_by_name: HashMap<String, EncodingRecipeNumber>,
     pub inst_pred_reg: InstructionPredicateRegistry,
+    formats: &'defs FormatRegistry,
 }
 
-impl PerCpuModeEncodings {
-    fn new() -> Self {
+impl<'defs> PerCpuModeEncodings<'defs> {
+    fn new(formats: &'defs FormatRegistry) -> Self {
         Self {
             enc32: Vec::new(),
             enc64: Vec::new(),
             recipes: Recipes::new(),
             recipes_by_name: HashMap::new(),
             inst_pred_reg: InstructionPredicateRegistry::new(),
+            formats,
         }
     }
 
@@ -67,7 +70,7 @@ impl PerCpuModeEncodings {
     {
         let (recipe, bits) = template.build();
         let recipe_number = self.add_recipe(recipe);
-        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits);
+        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits, self.formats);
         builder_closure(builder).build(&self.recipes, &mut self.inst_pred_reg)
     }
 
@@ -99,7 +102,7 @@ impl PerCpuModeEncodings {
     }
     fn enc32_rec(&mut self, inst: impl Into<InstSpec>, recipe: &EncodingRecipe, bits: u16) {
         let recipe_number = self.add_recipe(recipe.clone());
-        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits);
+        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits, self.formats);
         let encoding = builder.build(&self.recipes, &mut self.inst_pred_reg);
         self.enc32.push(encoding);
     }
@@ -132,7 +135,7 @@ impl PerCpuModeEncodings {
     }
     fn enc64_rec(&mut self, inst: impl Into<InstSpec>, recipe: &EncodingRecipe, bits: u16) {
         let recipe_number = self.add_recipe(recipe.clone());
-        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits);
+        let builder = EncodingBuilder::new(inst.into(), recipe_number, bits, self.formats);
         let encoding = builder.build(&self.recipes, &mut self.inst_pred_reg);
         self.enc64.push(encoding);
     }
@@ -319,12 +322,12 @@ impl PerCpuModeEncodings {
 
 // Definitions.
 
-pub(crate) fn define(
-    shared_defs: &SharedDefinitions,
+pub(crate) fn define<'defs>(
+    shared_defs: &'defs SharedDefinitions,
     settings: &SettingGroup,
     x86: &InstructionGroup,
     r: &RecipeGroup,
-) -> PerCpuModeEncodings {
+) -> PerCpuModeEncodings<'defs> {
     let shared = &shared_defs.instructions;
     let formats = &shared_defs.format_registry;
 
@@ -622,7 +625,7 @@ pub(crate) fn define(
     let use_sse41_simd = settings.predicate_by_name("use_sse41_simd");
 
     // Definitions.
-    let mut e = PerCpuModeEncodings::new();
+    let mut e = PerCpuModeEncodings::new(formats);
 
     // The pinned reg is fixed to a certain value entirely user-controlled, so it generates nothing!
     e.enc64_rec(get_pinned_reg.bind(I64), rec_get_pinned_reg, 0);

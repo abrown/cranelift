@@ -87,14 +87,8 @@ pub trait Bindable {
     /// Bind a parameter to an instruction
     fn bind(&self, parameter: impl Into<InstructionParameter>) -> BoundInstruction;
 
-    // TODO remove below
-    fn bind_ref(&self, parameter: shared::types::Reference) -> BoundInstruction {
-        self.bind(InstructionParameter::ReferenceType(ReferenceType(
-            parameter,
-        )))
-    }
-
-    fn bind_vector_from_lane(
+    /// Helper method for binding vectors of a specific vector bit width
+    fn bind_vector(
         &self,
         parameter: impl Into<LaneType>,
         vector_size: VectorBitWidth,
@@ -103,10 +97,6 @@ pub trait Bindable {
             parameter.into(),
             vector_size,
         ))
-    }
-
-    fn bind_any(&self) -> BoundInstruction {
-        self.bind(InstructionParameter::AnyType)
     }
 }
 
@@ -418,7 +408,10 @@ impl ValueTypeOrAny {
     }
 }
 
+/// The number of bits in the vector
 type VectorBitWidth = u64;
+
+/// An instruction paramater used for binding instructions to specific types or values
 pub enum InstructionParameter {
     AnyType,
     LaneType(LaneType),
@@ -447,6 +440,12 @@ impl From<shared::types::Float> for InstructionParameter {
 impl From<cdsl::types::LaneType> for InstructionParameter {
     fn from(ty: cdsl::types::LaneType) -> Self {
         InstructionParameter::LaneType(ty.into())
+    }
+}
+
+impl From<shared::types::Reference> for InstructionParameter {
+    fn from(ty: shared::types::Reference) -> Self {
+        InstructionParameter::ReferenceType(ty.into())
     }
 }
 

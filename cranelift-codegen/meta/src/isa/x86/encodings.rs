@@ -17,6 +17,7 @@ use crate::shared::types::Reference::{R32, R64};
 use crate::shared::Definitions as SharedDefinitions;
 
 use super::recipes::{RecipeGroup, Template};
+use crate::cdsl::instructions::InstructionParameter::AnyType;
 
 pub struct PerCpuModeEncodings {
     pub enc32: Vec<Encoding>,
@@ -190,8 +191,8 @@ impl PerCpuModeEncodings {
     /// Add encodings for `inst.r64` to X86_64 with a REX.W prefix.
     fn enc_r32_r64_rex_only(&mut self, inst: impl Into<InstSpec>, template: Template) {
         let inst: InstSpec = inst.into();
-        self.enc32(inst.bind_ref(R32), template.nonrex());
-        self.enc64(inst.bind_ref(R64), template.rex().w());
+        self.enc32(inst.bind(R32), template.nonrex());
+        self.enc64(inst.bind(R64), template.rex().w());
     }
 
     /// Add encodings for `inst` to X86_64 with and without a REX prefix.
@@ -264,18 +265,18 @@ impl PerCpuModeEncodings {
     /// Add encodings for `inst.i64` to X86_64 with a REX prefix, using the `w_bit`
     /// argument to determine whether or not to set the REX.W bit.
     fn enc_i32_i64_ld_st(&mut self, inst: &Instruction, w_bit: bool, template: Template) {
-        self.enc32(inst.clone().bind(I32).bind_any(), template.clone());
+        self.enc32(inst.clone().bind(I32).bind(AnyType), template.clone());
 
         // REX-less encoding must come after REX encoding so we don't use it by
         // default. Otherwise reg-alloc would never use r8 and up.
-        self.enc64(inst.clone().bind(I32).bind_any(), template.clone().rex());
-        self.enc64(inst.clone().bind(I32).bind_any(), template.clone());
+        self.enc64(inst.clone().bind(I32).bind(AnyType), template.clone().rex());
+        self.enc64(inst.clone().bind(I32).bind(AnyType), template.clone());
 
         if w_bit {
-            self.enc64(inst.clone().bind(I64).bind_any(), template.rex().w());
+            self.enc64(inst.clone().bind(I64).bind(AnyType), template.rex().w());
         } else {
-            self.enc64(inst.clone().bind(I64).bind_any(), template.clone().rex());
-            self.enc64(inst.clone().bind(I64).bind_any(), template);
+            self.enc64(inst.clone().bind(I64).bind(AnyType), template.clone().rex());
+            self.enc64(inst.clone().bind(I64).bind(AnyType), template);
         }
     }
 
@@ -676,12 +677,9 @@ pub(crate) fn define(
     e.enc64(regmove.bind(I64), rec_rmov.opcodes(vec![0x89]).rex().w());
     e.enc_both(regmove.bind(B1), rec_rmov.opcodes(vec![0x89]));
     e.enc_both(regmove.bind(I8), rec_rmov.opcodes(vec![0x89]));
-    e.enc32(regmove.bind_ref(R32), rec_rmov.opcodes(vec![0x89]));
-    e.enc64(regmove.bind_ref(R32), rec_rmov.opcodes(vec![0x89]).rex());
-    e.enc64(
-        regmove.bind_ref(R64),
-        rec_rmov.opcodes(vec![0x89]).rex().w(),
-    );
+    e.enc32(regmove.bind(R32), rec_rmov.opcodes(vec![0x89]));
+    e.enc64(regmove.bind(R32), rec_rmov.opcodes(vec![0x89]).rex());
+    e.enc64(regmove.bind(R64), rec_rmov.opcodes(vec![0x89]).rex().w());
 
     e.enc_i32_i64(iadd_imm, rec_r_ib.opcodes(vec![0x83]).rrr(0));
     e.enc_i32_i64(iadd_imm, rec_r_id.opcodes(vec![0x81]).rrr(0));
@@ -742,19 +740,19 @@ pub(crate) fn define(
         // Cannot use enc_i32_i64 for this pattern because instructions require
         // to bind any.
         e.enc32(
-            inst.bind(I32).bind_any(),
+            inst.bind(I32).bind(AnyType),
             rec_rc.opcodes(vec![0xd3]).rrr(rrr),
         );
         e.enc64(
-            inst.bind(I64).bind_any(),
+            inst.bind(I64).bind(AnyType),
             rec_rc.opcodes(vec![0xd3]).rrr(rrr).rex().w(),
         );
         e.enc64(
-            inst.bind(I32).bind_any(),
+            inst.bind(I32).bind(AnyType),
             rec_rc.opcodes(vec![0xd3]).rrr(rrr).rex(),
         );
         e.enc64(
-            inst.bind(I32).bind_any(),
+            inst.bind(I32).bind(AnyType),
             rec_rc.opcodes(vec![0xd3]).rrr(rrr),
         );
     }
@@ -926,7 +924,7 @@ pub(crate) fn define(
 
     for recipe in &[rec_st, rec_stDisp8, rec_stDisp32] {
         e.enc_i32_i64_ld_st(store, true, recipe.opcodes(vec![0x89]));
-        e.enc_x86_64(istore32.bind(I64).bind_any(), recipe.opcodes(vec![0x89]));
+        e.enc_x86_64(istore32.bind(I64).bind(AnyType), recipe.opcodes(vec![0x89]));
         e.enc_i32_i64_ld_st(istore16, false, recipe.opcodes(vec![0x66, 0x89]));
     }
 
@@ -935,8 +933,8 @@ pub(crate) fn define(
     // the corresponding st* recipes when a REX prefix is applied.
 
     for recipe in &[rec_st_abcd, rec_stDisp8_abcd, rec_stDisp32_abcd] {
-        e.enc_both(istore8.bind(I32).bind_any(), recipe.opcodes(vec![0x88]));
-        e.enc_x86_64(istore8.bind(I64).bind_any(), recipe.opcodes(vec![0x88]));
+        e.enc_both(istore8.bind(I32).bind(AnyType), recipe.opcodes(vec![0x88]));
+        e.enc_x86_64(istore8.bind(I64).bind(AnyType), recipe.opcodes(vec![0x88]));
     }
 
     e.enc_i32_i64(spill, rec_spillSib32.opcodes(vec![0x89]));
@@ -1075,15 +1073,15 @@ pub(crate) fn define(
 
     // Float loads and stores.
     e.enc_both(
-        load.bind(F32).bind_any(),
+        load.bind(F32).bind(AnyType),
         rec_fld.opcodes(vec![0xf3, 0x0f, 0x10]),
     );
     e.enc_both(
-        load.bind(F32).bind_any(),
+        load.bind(F32).bind(AnyType),
         rec_fldDisp8.opcodes(vec![0xf3, 0x0f, 0x10]),
     );
     e.enc_both(
-        load.bind(F32).bind_any(),
+        load.bind(F32).bind(AnyType),
         rec_fldDisp32.opcodes(vec![0xf3, 0x0f, 0x10]),
     );
 
@@ -1101,15 +1099,15 @@ pub(crate) fn define(
     );
 
     e.enc_both(
-        load.bind(F64).bind_any(),
+        load.bind(F64).bind(AnyType),
         rec_fld.opcodes(vec![0xf2, 0x0f, 0x10]),
     );
     e.enc_both(
-        load.bind(F64).bind_any(),
+        load.bind(F64).bind(AnyType),
         rec_fldDisp8.opcodes(vec![0xf2, 0x0f, 0x10]),
     );
     e.enc_both(
-        load.bind(F64).bind_any(),
+        load.bind(F64).bind(AnyType),
         rec_fldDisp32.opcodes(vec![0xf2, 0x0f, 0x10]),
     );
 
@@ -1127,15 +1125,15 @@ pub(crate) fn define(
     );
 
     e.enc_both(
-        store.bind(F32).bind_any(),
+        store.bind(F32).bind(AnyType),
         rec_fst.opcodes(vec![0xf3, 0x0f, 0x11]),
     );
     e.enc_both(
-        store.bind(F32).bind_any(),
+        store.bind(F32).bind(AnyType),
         rec_fstDisp8.opcodes(vec![0xf3, 0x0f, 0x11]),
     );
     e.enc_both(
-        store.bind(F32).bind_any(),
+        store.bind(F32).bind(AnyType),
         rec_fstDisp32.opcodes(vec![0xf3, 0x0f, 0x11]),
     );
 
@@ -1153,15 +1151,15 @@ pub(crate) fn define(
     );
 
     e.enc_both(
-        store.bind(F64).bind_any(),
+        store.bind(F64).bind(AnyType),
         rec_fst.opcodes(vec![0xf2, 0x0f, 0x11]),
     );
     e.enc_both(
-        store.bind(F64).bind_any(),
+        store.bind(F64).bind(AnyType),
         rec_fstDisp8.opcodes(vec![0xf2, 0x0f, 0x11]),
     );
     e.enc_both(
-        store.bind(F64).bind_any(),
+        store.bind(F64).bind(AnyType),
         rec_fstDisp32.opcodes(vec![0xf2, 0x0f, 0x11]),
     );
 
@@ -1739,7 +1737,7 @@ pub(crate) fn define(
 
     // PSHUFB, 8-bit shuffle using two XMM registers
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 8) {
-        let instruction = x86_pshufb.bind_vector_from_lane(ty, sse_vector_size);
+        let instruction = x86_pshufb.bind_vector(ty, sse_vector_size);
         let template = rec_fa.nonrex().opcodes(vec![0x66, 0x0f, 0x38, 00]);
         e.enc32_isap(instruction.clone(), template.clone(), use_ssse3_simd);
         e.enc64_isap(instruction, template, use_ssse3_simd);
@@ -1747,7 +1745,7 @@ pub(crate) fn define(
 
     // PSHUFD, 32-bit shuffle using one XMM register and a u8 immediate
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 32) {
-        let instruction = x86_pshufd.bind_vector_from_lane(ty, sse_vector_size);
+        let instruction = x86_pshufd.bind_vector(ty, sse_vector_size);
         let template = rec_r_ib_unsigned_fpr
             .nonrex()
             .opcodes(vec![0x66, 0x0f, 0x70]);
@@ -1757,9 +1755,9 @@ pub(crate) fn define(
 
     // SIMD scalar_to_vector; this uses MOV to copy the scalar value to an XMM register; according
     // to the Intel manual: "When the destination operand is an XMM register, the source operand is
-    // written to the low doubleword of the register and the regiser is zero-extended to 128 bits."
+    // written to the low doubleword of the register and the register is zero-extended to 128 bits."
     for ty in ValueType::all_lane_types().filter(allowed_simd_type) {
-        let instruction = scalar_to_vector.bind_vector_from_lane(ty, sse_vector_size);
+        let instruction = scalar_to_vector.bind_vector(ty, sse_vector_size);
         let template = rec_frurm.opcodes(vec![0x66, 0x0f, 0x6e]); // MOVD/MOVQ
         if ty.lane_bits() < 64 {
             // no 32-bit encodings for 64-bit widths
@@ -1778,7 +1776,7 @@ pub(crate) fn define(
 
     for ty in ValueType::all_lane_types().filter(allowed_simd_type) {
         if let Some((opcode, isap)) = insertlane_mapping.get(&ty.lane_bits()) {
-            let instruction = insertlane.bind_vector_from_lane(ty, sse_vector_size);
+            let instruction = insertlane.bind_vector(ty, sse_vector_size);
             let template = rec_r_ib_unsigned_r.opcodes(opcode.clone());
             if ty.lane_bits() < 64 {
                 e.enc_32_64_maybe_isap(instruction, template.nonrex(), isap.clone());
@@ -1799,7 +1797,7 @@ pub(crate) fn define(
 
     for ty in ValueType::all_lane_types().filter(allowed_simd_type) {
         if let Some((opcode, isap)) = extractlane_mapping.get(&ty.lane_bits()) {
-            let instruction = extractlane.bind_vector_from_lane(ty, sse_vector_size);
+            let instruction = extractlane.bind_vector(ty, sse_vector_size);
             let template = rec_r_ib_unsigned_gpr.opcodes(opcode.clone());
             if ty.lane_bits() < 64 {
                 e.enc_32_64_maybe_isap(instruction, template.nonrex(), isap.clone());
@@ -1812,7 +1810,7 @@ pub(crate) fn define(
 
     // SIMD bitcast f64 to all 8-bit-lane vectors (for legalizing splat.x8x16); assumes that f64 is stored in an XMM register
     for ty in ValueType::all_lane_types().filter(|t| t.lane_bits() == 8) {
-        let instruction = bitcast.bind_vector_from_lane(ty, sse_vector_size).bind(F64);
+        let instruction = bitcast.bind_vector(ty, sse_vector_size).bind(F64);
         e.enc32_rec(instruction.clone(), rec_null_fpr, 0);
         e.enc64_rec(instruction, rec_null_fpr, 0);
     }
@@ -1823,8 +1821,8 @@ pub(crate) fn define(
             ValueType::all_lane_types().filter(|t| allowed_simd_type(t) && *t != from_type)
         {
             let instruction = raw_bitcast
-                .bind_vector_from_lane(to_type, sse_vector_size)
-                .bind_vector_from_lane(from_type, sse_vector_size);
+                .bind_vector(to_type, sse_vector_size)
+                .bind_vector(from_type, sse_vector_size);
             e.enc32_rec(instruction.clone(), rec_null_fpr, 0);
             e.enc64_rec(instruction, rec_null_fpr, 0);
         }
@@ -1837,7 +1835,7 @@ pub(crate) fn define(
     // MOVQ + MOVHPD + MOVQ + MOVLPD (this allows the constants to be immediates instead of stored
     // in memory) but some performance measurements are needed.
     for ty in ValueType::all_lane_types().filter(allowed_simd_type) {
-        let instruction = vconst.bind_vector_from_lane(ty, sse_vector_size);
+        let instruction = vconst.bind_vector(ty, sse_vector_size);
         let template = rec_vconst.nonrex().opcodes(vec![0x0f, 0x10]);
         e.enc_32_64_maybe_isap(instruction, template, None); // from SSE
     }
@@ -1845,10 +1843,10 @@ pub(crate) fn define(
     // Reference type instructions
 
     // Null references implemented as iconst 0.
-    e.enc32(null.bind_ref(R32), rec_pu_id_ref.opcodes(vec![0xb8]));
+    e.enc32(null.bind(R32), rec_pu_id_ref.opcodes(vec![0xb8]));
 
-    e.enc64(null.bind_ref(R64), rec_pu_id_ref.rex().opcodes(vec![0xb8]));
-    e.enc64(null.bind_ref(R64), rec_pu_id_ref.opcodes(vec![0xb8]));
+    e.enc64(null.bind(R64), rec_pu_id_ref.rex().opcodes(vec![0xb8]));
+    e.enc64(null.bind(R64), rec_pu_id_ref.opcodes(vec![0xb8]));
 
     // is_null, implemented by testing whether the value is 0.
     e.enc_r32_r64_rex_only(is_null, rec_is_zero.opcodes(vec![0x85]));

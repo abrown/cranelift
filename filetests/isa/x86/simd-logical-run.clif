@@ -50,6 +50,16 @@ ebb0:
 }
 ; run
 
+function %vall_true_i16x8_true() -> b1 {
+ebb0:
+    v0 = vconst.i16x8 [1 1 1 1 1 1 1 1]
+    v1 = vall_true v0
+    v2 = bint.i32 v1
+    v3 = icmp_imm eq v2, 1
+    return v3
+}
+; run
+
 function %vall_true_b32x4() -> b1 {
 ebb0:
     v0 = vconst.b32x4 [true true true true]

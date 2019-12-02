@@ -1373,7 +1373,7 @@ impl<'a> Verifier<'a> {
             }
             let arg = variable_args[i];
             let arg_type = self.func.dfg.value_type(arg);
-            if expected_type != arg_type {
+            if expected_type != arg_type && !arg_type.is_subtype_of(expected_type) {
                 report!(
                     errors,
                     inst,

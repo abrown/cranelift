@@ -1070,7 +1070,9 @@ pub fn translate_operator<FE: FuncEnvironment + ?Sized>(
         }
         Operator::I8x16AddSaturateS | Operator::I16x8AddSaturateS => {
             let (a, b) = pop2_with_bitcast(state, type_of(op), builder);
-            state.push1(builder.ins().sadd_sat(a, b))
+            let c = builder.ins().sadd_sat(a, b);
+            builder.func.dfg.specify_type(c, type_of(op));
+            state.push1(c)
         }
         Operator::I8x16AddSaturateU | Operator::I16x8AddSaturateU => {
             let (a, b) = pop2_with_bitcast(state, type_of(op), builder);
@@ -1090,7 +1092,9 @@ pub fn translate_operator<FE: FuncEnvironment + ?Sized>(
         }
         Operator::I8x16Neg | Operator::I16x8Neg | Operator::I32x4Neg | Operator::I64x2Neg => {
             let a = pop1_with_bitcast(state, type_of(op), builder);
-            state.push1(builder.ins().ineg(a))
+            let b = builder.ins().ineg(a);
+            builder.func.dfg.specify_type(b, type_of(op));
+            state.push1(b)
         }
         Operator::I16x8Mul | Operator::I32x4Mul => {
             let (a, b) = pop2_with_bitcast(state, type_of(op), builder);
@@ -1556,7 +1560,7 @@ fn type_of(operator: &Operator) -> Type {
         | Operator::V128And
         | Operator::V128Or
         | Operator::V128Xor
-        | Operator::V128Bitselect => I8X16, // default type representing V128
+        | Operator::V128Bitselect => X128, // default type representing V128
 
         Operator::V8x16Shuffle { .. }
         | Operator::I8x16Splat
@@ -1725,7 +1729,8 @@ fn pop1_with_bitcast(
     needed_type: Type,
     builder: &mut FunctionBuilder,
 ) -> Value {
-    optionally_bitcast_vector(state.pop1(), needed_type, builder)
+    state.pop1()
+    // optionally_bitcast_vector(state.pop1(), needed_type, builder)
 }
 
 /// A helper for popping and bitcasting two values; since SIMD values can lose their type by
@@ -1736,8 +1741,9 @@ fn pop2_with_bitcast(
     needed_type: Type,
     builder: &mut FunctionBuilder,
 ) -> (Value, Value) {
-    let (a, b) = state.pop2();
-    let bitcast_a = optionally_bitcast_vector(a, needed_type, builder);
-    let bitcast_b = optionally_bitcast_vector(b, needed_type, builder);
-    (bitcast_a, bitcast_b)
+    state.pop2()
+    //    let (a, b) = state.pop2();
+    //    let bitcast_a = optionally_bitcast_vector(a, needed_type, builder);
+    //    let bitcast_b = optionally_bitcast_vector(b, needed_type, builder);
+    //    (bitcast_a, bitcast_b)
 }

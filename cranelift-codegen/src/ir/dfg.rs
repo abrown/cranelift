@@ -603,6 +603,15 @@ impl DataFlowGraph {
         };
     }
 
+    /// Specify the controlling type of a value directly.
+    pub fn specify_type(&mut self, value: Value, ty: Type) {
+        let (num, inst) = match self.values[value] {
+            ValueData::Inst { num, inst, .. } => (num, inst),
+            _ => panic!("{} is not an instruction result value", value),
+        };
+        self.values[value] = ValueData::Inst { ty, num, inst }
+    }
+
     /// Replace an instruction result with a new value of type `new_type`.
     ///
     /// The `old_value` must be an attached instruction result.

@@ -125,7 +125,7 @@ pub fn type_to_type(ty: wasmparser::Type) -> WasmResult<ir::Type> {
         wasmparser::Type::I64 => Ok(ir::types::I64),
         wasmparser::Type::F32 => Ok(ir::types::F32),
         wasmparser::Type::F64 => Ok(ir::types::F64),
-        wasmparser::Type::V128 => Ok(ir::types::I8X16),
+        wasmparser::Type::V128 => Ok(ir::types::X128),
         ty => Err(wasm_unsupported!("type_to_type: wasm type {:?}", ty)),
     }
 }
@@ -138,7 +138,7 @@ pub fn tabletype_to_type(ty: wasmparser::Type) -> WasmResult<Option<ir::Type>> {
         wasmparser::Type::I64 => Ok(Some(ir::types::I64)),
         wasmparser::Type::F32 => Ok(Some(ir::types::F32)),
         wasmparser::Type::F64 => Ok(Some(ir::types::F64)),
-        wasmparser::Type::V128 => Ok(Some(ir::types::I8X16)),
+        wasmparser::Type::V128 => Ok(Some(ir::types::X128)),
         wasmparser::Type::AnyFunc => Ok(None),
         ty => Err(wasm_unsupported!(
             "tabletype_to_type: table wasm type {:?}",
@@ -191,7 +191,7 @@ pub fn ebb_with_params(
                 builder.append_ebb_param(ebb, ir::types::F64);
             }
             wasmparser::Type::V128 => {
-                builder.append_ebb_param(ebb, ir::types::I8X16);
+                builder.append_ebb_param(ebb, ir::types::X128);
             }
             ty => {
                 return Err(wasm_unsupported!(

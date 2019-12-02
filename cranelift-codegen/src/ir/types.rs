@@ -329,7 +329,9 @@ impl Type {
 
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.is_bool() {
+        if *self == X128 {
+            write!(f, "x128")
+        } else if self.is_bool() {
             write!(f, "b{}", self.lane_bits())
         } else if self.is_int() {
             write!(f, "i{}", self.lane_bits())
@@ -344,7 +346,6 @@ impl Display for Type {
                 INVALID => panic!("INVALID encountered"),
                 IFLAGS => "iflags",
                 FFLAGS => "fflags",
-                X128 => "v128",
                 _ => panic!("Unknown Type(0x{:x})", self.0),
             })
         }

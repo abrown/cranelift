@@ -7,6 +7,7 @@ use crate::shared::types::Int::{I16, I32, I64, I8};
 use crate::shared::Definitions as SharedDefinitions;
 
 mod encodings;
+mod format;
 mod instructions;
 mod legalize;
 mod opcodes;
